@@ -188,11 +188,10 @@ document.addEventListener("DOMContentLoaded", () => {
   let lastTap = 0;
   let pinchActive = false;
 
-  function applyTransform() {
+function applyTransform() {
     lightboxImg.style.transform =
-      `translate(${posX}px, ${posY}px) scale(${scale})`;
-    if (zoomIndicator) zoomIndicator.textContent = `${Math.round(scale * 100)}%`;
-  }
+        `translate(calc(-50% + ${posX}px), calc(-50% + ${posY}px)) scale(${scale})`;
+} 
 
   function constrainDrag() {
     if (scale <= 1) {
