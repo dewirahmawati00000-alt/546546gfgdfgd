@@ -186,11 +186,10 @@ document.addEventListener("DOMContentLoaded", () => {
   let initialDistance = 0;
   let initialScale = 1;
   let lastTap = 0;
+  let swipeStart = 0;
 
   function applyTransform() {
-    lightboxImg.style.transform =
-      `translate(${posX}px, ${posY}px) scale(${scale})`;
-
+    lightboxImg.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
     if (zoomIndicator)
       zoomIndicator.textContent = `Zoom: ${Math.round(scale * 100)}%`;
   }
@@ -201,11 +200,9 @@ document.addEventListener("DOMContentLoaded", () => {
       posY = 0;
       return;
     }
-
     const rect = lightboxImg.getBoundingClientRect();
     const maxX = (rect.width - window.innerWidth) / 2;
     const maxY = (rect.height - window.innerHeight) / 2;
-
     posX = Math.min(Math.max(posX, -maxX), maxX);
     posY = Math.min(Math.max(posY, -maxY), maxY);
   }
@@ -221,29 +218,25 @@ document.addEventListener("DOMContentLoaded", () => {
     item.addEventListener("click", () => {
       const cat = item.dataset.category;
       const container = produkData.querySelector(`[data-category="${cat}"]`);
-      currentList = [...container.querySelectorAll("img")]
-        .map(i => i.dataset.full || i.src);
-
+      currentList = [...container.querySelectorAll("img")].map(i => i.dataset.full || i.src);
       currentIndex = 0;
       showImage();
     });
   });
 
   function showImage() {
-    resetZoom();
+    scale = 1;
+    posX = 0;
+    posY = 0;
+    applyTransform();
 
     lightboxImg.src = currentList[currentIndex];
     lightbox.classList.add("active");
     document.body.style.overflow = "hidden";
 
     lightboxImg.style.transition = "none";
-    lightboxImg.style.transform = "scale(0.85)";
-
     requestAnimationFrame(() => {
-      setTimeout(() => {
-        lightboxImg.style.transition = "transform .25s ease";
-        resetZoom();
-      }, 20);
+      lightboxImg.style.transition = "transform .25s ease";
     });
   }
 
@@ -253,8 +246,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function prevImg() {
-    currentIndex =
-      (currentIndex - 1 + currentList.length) % currentList.length;
+    currentIndex = (currentIndex - 1 + currentList.length) % currentList.length;
     showImage();
   }
 
@@ -299,10 +291,6 @@ document.addEventListener("DOMContentLoaded", () => {
     lightboxImg.style.cursor = scale > 1 ? "grab" : "default";
   });
 
-
-  /* --------------------------
-      MOBILE TOUCH START (FIX)
-  ---------------------------*/
   lightboxImg.addEventListener("touchstart", e => {
     lightboxImg.style.transition = "none";
 
@@ -310,6 +298,7 @@ document.addEventListener("DOMContentLoaded", () => {
       isDragging = scale > 1;
       startX = e.touches[0].clientX - posX;
       startY = e.touches[0].clientY - posY;
+      swipeStart = e.touches[0].clientX;
     }
 
     if (e.touches.length === 2) {
@@ -318,10 +307,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }, { passive: false });
 
-
-  /* --------------------------
-      MOBILE TOUCH MOVE
-  ---------------------------*/
   lightboxImg.addEventListener("touchmove", e => {
     if (e.touches.length === 1 && isDragging) {
       e.preventDefault();
@@ -341,27 +326,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }, { passive: false });
 
-
   lightboxImg.addEventListener("touchend", e => {
+    if (scale === 1) {
+      const now = Date.now();
+      if (now - lastTap < 250) resetZoom();
+      lastTap = now;
+    }
+
+    if (scale === 1) {
+      const diff = swipeStart - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 60) diff > 0 ? nextImg() : prevImg();
+    }
+
     if (e.touches.length === 0) isDragging = false;
-
-    const now = Date.now();
-    if (now - lastTap < 250) resetZoom();
-    lastTap = now;
-  });
-
-  let swipeStart = 0;
-
-  lightboxImg.addEventListener("touchstart", e => {
-    if (scale === 1 && e.touches.length === 1)
-      swipeStart = e.touches[0].clientX;
-  });
-
-  lightboxImg.addEventListener("touchend", e => {
-    if (scale > 1) return;
-
-    const diff = swipeStart - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 60) diff > 0 ? nextImg() : prevImg();
   });
 
   function getDist(t) {
