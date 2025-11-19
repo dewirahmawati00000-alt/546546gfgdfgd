@@ -165,16 +165,13 @@
   })();
 
 document.addEventListener("DOMContentLoaded", () => {
-
   const kategoriItems = document.querySelectorAll(".kategori-item");
   const produkData = document.querySelector("#produk-data");
-
   const lightbox = document.getElementById("lightbox");
   const lightboxImg = document.querySelector(".lightbox-img");
   const lightboxClose = document.querySelector(".lightbox-close");
   const btnPrev = document.querySelector(".lightbox-prev");
   const btnNext = document.querySelector(".lightbox-next");
-
   const zoomIndicator = document.querySelector(".zoom-indicator");
 
   let currentList = [];
@@ -187,21 +184,20 @@ document.addEventListener("DOMContentLoaded", () => {
   let initialDistance = 0;
   let initialScale = 1;
   let lastTapTime = 0;
-  let isPinching = false;
   let touchCount = 0;
+  let isPinching = false;
+  let swipeStartX = 0;
 
   function updateCursor() {
-    lightboxImg.style.cursor = scale <= 1 ? "default" : (isDragging ? "grabbing" : "grab");
+    lightboxImg.style.cursor = scale <= 1 ? "default" : isDragging ? "grabbing" : "grab";
   }
 
   function constrainDrag() {
     const rect = lightboxImg.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-
     const maxX = (rect.width * scale - vw) / 2;
     const maxY = (rect.height * scale - vh) / 2;
-
     posX = Math.min(Math.max(posX, -maxX), maxX);
     posY = Math.min(Math.max(posY, -maxY), maxY);
   }
@@ -209,7 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function applyTransform() {
     lightboxImg.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
     updateCursor();
-    updateZoomIndicator();
+    if (zoomIndicator) zoomIndicator.textContent = `Zoom: ${Math.round(scale * 100)}%`;
   }
 
   function resetZoom() {
@@ -223,11 +219,7 @@ document.addEventListener("DOMContentLoaded", () => {
     item.addEventListener("click", () => {
       const cat = item.getAttribute("data-category");
       const container = produkData.querySelector(`[data-category="${cat}"]`);
-
-      currentList = [...container.querySelectorAll("img")].map(i =>
-        i.dataset.full ? i.dataset.full : i.src
-      );
-
+      currentList = [...container.querySelectorAll("img")].map(i => i.dataset.full || i.src);
       currentIndex = 0;
       openLightbox();
     });
@@ -238,10 +230,9 @@ document.addEventListener("DOMContentLoaded", () => {
     lightboxImg.src = currentList[currentIndex];
     lightbox.classList.add("active");
     document.body.style.overflow = "hidden";
-
     lightboxImg.style.transition = "transform .25s ease";
     lightboxImg.style.transform = "translate(0px,0px) scale(0.7)";
-    setTimeout(() => applyTransform(), 20);
+    setTimeout(applyTransform, 20);
   }
 
   function nextImage() {
@@ -281,20 +272,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  let swipeStartX = 0;
-
-  lightboxImg.addEventListener("touchstart", e => {
-    if (scale === 1 && e.touches.length === 1) {
-      swipeStartX = e.touches[0].clientX;
-    }
-  });
-
-  lightboxImg.addEventListener("touchend", e => {
-    if (scale > 1) return;
-    const diff = swipeStartX - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 60) diff > 0 ? nextImage() : prevImage();
-  });
-
   lightboxImg.addEventListener("wheel", e => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.15 : 0.15;
@@ -323,6 +300,12 @@ document.addEventListener("DOMContentLoaded", () => {
     updateCursor();
   });
 
+  function getDistance(t) {
+    const dx = t[0].clientX - t[1].clientX;
+    const dy = t[0].clientY - t[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+
   lightboxImg.addEventListener("touchstart", e => {
     touchCount = e.touches.length;
 
@@ -333,18 +316,22 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (e.touches.length === 1 && scale > 1) {
+    if (scale > 1 && e.touches.length === 1) {
       isDragging = true;
       startX = e.touches[0].clientX - posX;
       startY = e.touches[0].clientY - posY;
+    }
+
+    if (scale === 1 && e.touches.length === 1) {
+      swipeStartX = e.touches[0].clientX;
     }
   });
 
   lightboxImg.addEventListener("touchmove", e => {
     if (e.touches.length === 2) {
       e.preventDefault();
-      const newDist = getDistance(e.touches);
-      scale = Math.min(Math.max(1, initialScale * (newDist / initialDistance)), 4);
+      const d = getDistance(e.touches);
+      scale = Math.min(Math.max(1, initialScale * (d / initialDistance)), 4);
       if (scale === 1) { posX = 0; posY = 0; }
       constrainDrag();
       applyTransform();
@@ -354,7 +341,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isDragging && e.touches.length === 1) {
       e.preventDefault();
       posX = e.touches[0].clientX - startX;
-      posY = e.touches[0].clientY - posY;
+      posY = e.touches[0].clientY - startY;
       constrainDrag();
       applyTransform();
     }
@@ -367,6 +354,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    if (scale === 1 && e.changedTouches.length === 1) {
+      const diff = swipeStartX - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 60) diff > 0 ? nextImage() : prevImage();
+    }
+
     if (touchCount === 1) {
       const now = Date.now();
       if (now - lastTapTime < 300) resetZoom();
@@ -377,17 +369,5 @@ document.addEventListener("DOMContentLoaded", () => {
     touchCount = 0;
     updateCursor();
   });
-
-  function getDistance(touches) {
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.hypot(dx, dy);
-  }
-
-  function updateZoomIndicator() {
-    if (!zoomIndicator) return;
-    zoomIndicator.textContent = `Zoom: ${Math.round(scale * 100)}%`;
-  }
-
 });
 
