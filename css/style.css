@@ -552,66 +552,40 @@ body {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  
-
-  background: radial-gradient(
-      circle at center,
-      rgba(255, 255, 255, 0.08) 0%,
-      rgba(0, 0, 0, 0.92) 70%
-    ),
-    url('img/smoke.png'); 
-  
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.92) 70%), url('img/smoke.png');
   background-size: cover;
   justify-content: center;
   align-items: center;
   backdrop-filter: blur(4px);
-}
-
-.lightbox.active { display: flex; }
-
-.lightbox-img {
-  width: auto;
-  height: 90vh;       
-  max-height: 90vh;
-  object-fit: contain;
-  border-radius: 10px;
-  box-shadow: none;
-}
-
-
-.lightbox {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
   opacity: 0;
   pointer-events: none;
   transition: opacity .25s ease;
 }
 
-
 .lightbox.active {
+  display: flex;
   opacity: 1;
   pointer-events: auto;
 }
 
+.lightbox-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: auto;
+  width: 100%;
+  height: 100%;
+  touch-action: pinch-zoom;
+}
 
 .lightbox-img {
-  max-width: 90%;
-  max-height: 90%;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  translate: -50% -50%;
-  transform-origin: center center;
+  width: auto;
+  height: auto;
+  touch-action: pinch-zoom;
   user-select: none;
   -webkit-user-drag: none;
   -webkit-user-select: none;
-  transition: transform .25s ease; 
-  cursor: zoom-in;
+  -webkit-touch-callout: none;
 }
 
 .zoom-indicator {
@@ -628,8 +602,6 @@ body {
   pointer-events: none;
 }
 
-
-
 .lightbox-close {
   position: absolute;
   top: 20px;
@@ -641,8 +613,10 @@ body {
   z-index: 10;
   transition: 0.2s;
 }
-.lightbox-close:hover { color: #ffcc00; }
 
+.lightbox-close:hover {
+  color: #ffcc00;
+}
 
 .lightbox-prev,
 .lightbox-next {
@@ -672,15 +646,23 @@ body {
   color: #ffcc00;
 }
 
-.lightbox-prev { left: 40px; }
-.lightbox-next { right: 40px; }
+.lightbox-prev {
+  left: 40px;
+}
+
+.lightbox-next {
+  right: 40px;
+}
 
 @media (max-width: 768px) {
   .lightbox-prev,
-  .lightbox-next { display: none; }
+  .lightbox-next {
+    display: none;
+  }
 }
 
 .produk-slider-hint,
 .portfolio-hint {
   display: none;
 }
+
