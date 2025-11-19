@@ -219,19 +219,26 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  function showImage() {
-    resetZoom();
-    lightboxImg.src = currentList[currentIndex];
-    lightbox.classList.add("active");
-    document.body.style.overflow = "hidden";
-    lightboxImg.style.transform = "scale(0.85)";
+function showImage() {
+  scale = 1;
+  posX = 0;
+  posY = 0;
+
+  lightbox.classList.add("active");
+  document.body.style.overflow = "hidden";
+
+  lightboxImg.style.transition = "none";
+  lightboxImg.style.transform = "scale(0.85)";
+  lightboxImg.src = currentList[currentIndex];
+
+  lightboxImg.onload = () => {
     requestAnimationFrame(() => {
-      setTimeout(() => {
-        lightboxImg.style.transition = "transform .2s ease";
-        resetZoom();
-      }, 10);
+      lightboxImg.style.transition = "transform .25s ease";
+      applyTransform();
     });
-  }
+  };
+}
+
 
   function nextImg() {
     currentIndex = (currentIndex + 1) % currentList.length;
