@@ -186,12 +186,12 @@ document.addEventListener("DOMContentLoaded", () => {
   let initialDistance = 0;
   let initialScale = 1;
   let lastTap = 0;
-  let swipeStart = 0;
+  let pinchActive = false;
 
   function applyTransform() {
-    lightboxImg.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
-    if (zoomIndicator)
-      zoomIndicator.textContent = `Zoom: ${Math.round(scale * 100)}%`;
+    lightboxImg.style.transform =
+      `translate(${posX}px, ${posY}px) scale(${scale})`;
+    if (zoomIndicator) zoomIndicator.textContent = `${Math.round(scale * 100)}%`;
   }
 
   function constrainDrag() {
@@ -218,7 +218,8 @@ document.addEventListener("DOMContentLoaded", () => {
     item.addEventListener("click", () => {
       const cat = item.dataset.category;
       const container = produkData.querySelector(`[data-category="${cat}"]`);
-      currentList = [...container.querySelectorAll("img")].map(i => i.dataset.full || i.src);
+      currentList = [...container.querySelectorAll("img")]
+        .map(i => i.dataset.full || i.src);
       currentIndex = 0;
       showImage();
     });
@@ -260,12 +261,12 @@ document.addEventListener("DOMContentLoaded", () => {
     prevImg();
   });
 
-  lightboxClose.addEventListener("click", closeLightbox);
   function closeLightbox() {
     lightbox.classList.remove("active");
     document.body.style.overflow = "";
   }
 
+  lightboxClose.addEventListener("click", closeLightbox);
   lightbox.addEventListener("click", e => {
     if (e.target === lightbox) closeLightbox();
   });
@@ -295,20 +296,22 @@ document.addEventListener("DOMContentLoaded", () => {
     lightboxImg.style.transition = "none";
 
     if (e.touches.length === 1) {
-      isDragging = scale > 1;
-      startX = e.touches[0].clientX - posX;
-      startY = e.touches[0].clientY - posY;
-      swipeStart = e.touches[0].clientX;
+      if (!pinchActive && scale > 1) {
+        isDragging = true;
+        startX = e.touches[0].clientX - posX;
+        startY = e.touches[0].clientY - posY;
+      }
     }
 
     if (e.touches.length === 2) {
+      pinchActive = true;
       initialDistance = getDist(e.touches);
       initialScale = scale;
     }
   }, { passive: false });
 
   lightboxImg.addEventListener("touchmove", e => {
-    if (e.touches.length === 1 && isDragging) {
+    if (e.touches.length === 1 && isDragging && !pinchActive) {
       e.preventDefault();
       posX = e.touches[0].clientX - startX;
       posY = e.touches[0].clientY - startY;
@@ -319,6 +322,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (e.touches.length === 2) {
       e.preventDefault();
+      pinchActive = true;
       const dist = getDist(e.touches);
       scale = Math.min(Math.max(1, initialScale * (dist / initialDistance)), 4);
       applyTransform();
@@ -327,18 +331,32 @@ document.addEventListener("DOMContentLoaded", () => {
   }, { passive: false });
 
   lightboxImg.addEventListener("touchend", e => {
-    if (scale === 1) {
-      const now = Date.now();
-      if (now - lastTap < 250) resetZoom();
-      lastTap = now;
+    if (e.touches.length === 0) {
+      isDragging = false;
+      if (pinchActive) {
+        pinchActive = false;
+        lastTap = Date.now();
+        return;
+      }
     }
 
-    if (scale === 1) {
-      const diff = swipeStart - e.changedTouches[0].clientX;
-      if (Math.abs(diff) > 60) diff > 0 ? nextImg() : prevImg();
-    }
+    const now = Date.now();
+    if (!pinchActive && scale === 1 && now - lastTap < 250) resetZoom();
+    lastTap = now;
+  });
 
-    if (e.touches.length === 0) isDragging = false;
+  let swipeStart = 0;
+
+  lightboxImg.addEventListener("touchstart", e => {
+    if (scale === 1 && e.touches.length === 1)
+      swipeStart = e.touches[0].clientX;
+  });
+
+  lightboxImg.addEventListener("touchend", e => {
+    if (scale > 1) return;
+
+    const diff = swipeStart - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 60) diff > 0 ? nextImg() : prevImg();
   });
 
   function getDist(t) {
