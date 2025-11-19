@@ -188,25 +188,27 @@ document.addEventListener("DOMContentLoaded", () => {
   let lastTap = 0;
 
   function applyTransform() {
-    lightboxImg.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
-    if (zoomIndicator) zoomIndicator.textContent = `Zoom: ${Math.round(scale * 100)}%`;
+    lightboxImg.style.transform =
+      `translate(${posX}px, ${posY}px) scale(${scale})`;
+
+    if (zoomIndicator)
+      zoomIndicator.textContent = `Zoom: ${Math.round(scale * 100)}%`;
   }
 
-function constrainDrag() {
-  if (scale <= 1) {
-    posX = 0;
-    posY = 0;
-    return;
+  function constrainDrag() {
+    if (scale <= 1) {
+      posX = 0;
+      posY = 0;
+      return;
+    }
+
+    const rect = lightboxImg.getBoundingClientRect();
+    const maxX = (rect.width - window.innerWidth) / 2;
+    const maxY = (rect.height - window.innerHeight) / 2;
+
+    posX = Math.min(Math.max(posX, -maxX), maxX);
+    posY = Math.min(Math.max(posY, -maxY), maxY);
   }
-
-  const rect = lightboxImg.getBoundingClientRect();
-  const maxX = (rect.width - window.innerWidth) / 2;
-  const maxY = (rect.height - window.innerHeight) / 2;
-
-  posX = Math.min(Math.max(posX, -maxX), maxX);
-  posY = Math.min(Math.max(posY, -maxY), maxY);
-}
-
 
   function resetZoom() {
     scale = 1;
@@ -219,34 +221,31 @@ function constrainDrag() {
     item.addEventListener("click", () => {
       const cat = item.dataset.category;
       const container = produkData.querySelector(`[data-category="${cat}"]`);
-      currentList = [...container.querySelectorAll("img")].map(i =>
-        i.dataset.full || i.src
-      );
+      currentList = [...container.querySelectorAll("img")]
+        .map(i => i.dataset.full || i.src);
+
       currentIndex = 0;
       showImage();
     });
   });
 
-function showImage() {
-  scale = 1;
-  posX = 0;
-  posY = 0;
+  function showImage() {
+    resetZoom();
 
-  lightbox.classList.add("active");
-  document.body.style.overflow = "hidden";
+    lightboxImg.src = currentList[currentIndex];
+    lightbox.classList.add("active");
+    document.body.style.overflow = "hidden";
 
-  lightboxImg.style.transition = "none";
-  lightboxImg.style.transform = "scale(0.85)";
-  lightboxImg.src = currentList[currentIndex];
+    lightboxImg.style.transition = "none";
+    lightboxImg.style.transform = "scale(0.85)";
 
-  lightboxImg.onload = () => {
     requestAnimationFrame(() => {
-      lightboxImg.style.transition = "transform .25s ease";
-      applyTransform();
+      setTimeout(() => {
+        lightboxImg.style.transition = "transform .25s ease";
+        resetZoom();
+      }, 20);
     });
-  };
-}
-
+  }
 
   function nextImg() {
     currentIndex = (currentIndex + 1) % currentList.length;
@@ -254,12 +253,20 @@ function showImage() {
   }
 
   function prevImg() {
-    currentIndex = (currentIndex - 1 + currentList.length) % currentList.length;
+    currentIndex =
+      (currentIndex - 1 + currentList.length) % currentList.length;
     showImage();
   }
 
-  btnNext?.addEventListener("click", e => { e.stopPropagation(); nextImg(); });
-  btnPrev?.addEventListener("click", e => { e.stopPropagation(); prevImg(); });
+  btnNext?.addEventListener("click", e => {
+    e.stopPropagation();
+    nextImg();
+  });
+
+  btnPrev?.addEventListener("click", e => {
+    e.stopPropagation();
+    prevImg();
+  });
 
   lightboxClose.addEventListener("click", closeLightbox);
   function closeLightbox() {
@@ -292,17 +299,29 @@ function showImage() {
     lightboxImg.style.cursor = scale > 1 ? "grab" : "default";
   });
 
+
+  /* --------------------------
+      MOBILE TOUCH START (FIX)
+  ---------------------------*/
   lightboxImg.addEventListener("touchstart", e => {
+    lightboxImg.style.transition = "none";
+
     if (e.touches.length === 1) {
       isDragging = scale > 1;
       startX = e.touches[0].clientX - posX;
       startY = e.touches[0].clientY - posY;
-    } else if (e.touches.length === 2) {
+    }
+
+    if (e.touches.length === 2) {
       initialDistance = getDist(e.touches);
       initialScale = scale;
     }
   }, { passive: false });
 
+
+  /* --------------------------
+      MOBILE TOUCH MOVE
+  ---------------------------*/
   lightboxImg.addEventListener("touchmove", e => {
     if (e.touches.length === 1 && isDragging) {
       e.preventDefault();
@@ -318,11 +337,14 @@ function showImage() {
       const dist = getDist(e.touches);
       scale = Math.min(Math.max(1, initialScale * (dist / initialDistance)), 4);
       applyTransform();
+      return;
     }
   }, { passive: false });
 
+
   lightboxImg.addEventListener("touchend", e => {
     if (e.touches.length === 0) isDragging = false;
+
     const now = Date.now();
     if (now - lastTap < 250) resetZoom();
     lastTap = now;
@@ -337,11 +359,16 @@ function showImage() {
 
   lightboxImg.addEventListener("touchend", e => {
     if (scale > 1) return;
+
     const diff = swipeStart - e.changedTouches[0].clientX;
     if (Math.abs(diff) > 60) diff > 0 ? nextImg() : prevImg();
   });
 
   function getDist(t) {
-    return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    return Math.hypot(
+      t[0].clientX - t[1].clientX,
+      t[0].clientY - t[1].clientY
+    );
   }
 });
+
