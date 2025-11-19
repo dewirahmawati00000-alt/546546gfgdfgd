@@ -192,13 +192,21 @@ document.addEventListener("DOMContentLoaded", () => {
     if (zoomIndicator) zoomIndicator.textContent = `Zoom: ${Math.round(scale * 100)}%`;
   }
 
-  function constrainDrag() {
-    const rect = lightboxImg.getBoundingClientRect();
-    const maxX = Math.max(0, (rect.width - window.innerWidth) / 2);
-    const maxY = Math.max(0, (rect.height - window.innerHeight) / 2);
-    posX = Math.min(Math.max(posX, -maxX), maxX);
-    posY = Math.min(Math.max(posY, -maxY), maxY);
+function constrainDrag() {
+  if (scale <= 1) {
+    posX = 0;
+    posY = 0;
+    return;
   }
+
+  const rect = lightboxImg.getBoundingClientRect();
+  const maxX = (rect.width - window.innerWidth) / 2;
+  const maxY = (rect.height - window.innerHeight) / 2;
+
+  posX = Math.min(Math.max(posX, -maxX), maxX);
+  posY = Math.min(Math.max(posY, -maxY), maxY);
+}
+
 
   function resetZoom() {
     scale = 1;
